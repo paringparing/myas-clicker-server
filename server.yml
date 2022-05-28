@@ -9,7 +9,8 @@ metadata:
 spec:
   containers:
     - name: myas-clicker
-      image: pikokr/myas-clicker
+      image: pikokr/myas-clicker:latest
+      imagePullPolicy: Always
       ports:
         - containerPort: 8080
 ---
