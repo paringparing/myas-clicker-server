@@ -1,18 +1,41 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 
 metadata:
-  name: myas-clicker
+  name: myas-clicker-deployment
   labels:
     app: myas-clicker
 
 spec:
-  containers:
-    - name: myas-clicker
-      image: pikokr/myas-clicker:latest
-      imagePullPolicy: Always
-      ports:
-        - containerPort: 8080
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: myas-clicker
+  template:
+    metadata:
+      name: myas-clicker
+      labels:
+        app: myas-clicker
+
+    spec:
+      containers:
+        - name: myas-clicker
+          image: pikokr/myas-clicker:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - mountPath: /app/data
+              name: data
+          livenessProbe:
+            httpGet:
+              port: 8080
+              path: /
+      volumes:
+        - name: data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

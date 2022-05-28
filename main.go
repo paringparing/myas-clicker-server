@@ -23,7 +23,7 @@ func main() {
 		addr = ":8080"
 	}
 
-	file, err := ioutil.ReadFile("count.json")
+	file, err := ioutil.ReadFile("data/count.json")
 
 	if err == nil {
 		json.Unmarshal(file, &count)
@@ -59,5 +59,7 @@ func main() {
 		panic(err)
 	}
 
-	ioutil.WriteFile("./count.json", res, 0644)
+	os.Mkdir("data", 0777)
+
+	ioutil.WriteFile("./data/count.json", res, 0644)
 }
