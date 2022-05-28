@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+
+metadata:
+  name: myas-clicker
+  labels:
+    app: myas-clicker
+
+spec:
+  containers:
+    - name: myas-clicker
+      image: pikokr/myas-clicker
+      ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: myas-clicker
+
+spec:
+  selector:
+    app: myas-clicker
+  ports:
+    - port: 8080
+      protocol: TCP
