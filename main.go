@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Count struct {
@@ -40,6 +42,10 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 
 	http.Handle("/", fs)
+
+	metrics := promhttp.Handler()
+
+	http.HandleFunc("/metrics", metrics.ServeHTTP)
 
 	go func() {
 		if err := http.ListenAndServe(addr, nil); err != nil {

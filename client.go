@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -23,10 +22,6 @@ const (
 	maxMessageSize = 512
 )
 
-var (
-	newline = []byte{'\n'}
-)
-
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -43,7 +38,7 @@ type Client struct {
 	conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
-	send chan []byte
+	send chan interface{}
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -60,14 +55,7 @@ func (c *Client) readPump() {
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
-	res, err := json.Marshal(socketData{Type: "count", Data: count.Count})
-
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	c.send <- res
+	c.send <- socketData{Type: "count", Data: count.Count}
 
 	for {
 		data := &socketData{}
@@ -78,14 +66,13 @@ func (c *Client) readPump() {
 		switch data.Type {
 		case "Up":
 			count.Count += 1
-			res, err := json.Marshal(socketData{Type: "count", Data: count.Count})
 
 			if err != nil {
 				log.Fatal(err)
 				continue
 			}
 
-			c.hub.broadcast <- res
+			c.hub.broadcast <- socketData{Type: "count", Data: count.Count}
 		}
 	}
 }
@@ -111,22 +98,7 @@ func (c *Client) writePump() {
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
-			w.Write(message)
-
-			// Add queued chat messages to the current websocket message.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.send)
-			}
-
-			if err := w.Close(); err != nil {
-				return
-			}
+			c.conn.WriteJSON(message)
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
@@ -143,7 +115,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{hub: hub, conn: conn, send: make(chan interface{}, 256)}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
